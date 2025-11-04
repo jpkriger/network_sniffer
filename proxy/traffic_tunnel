@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+IFACE="${1:-}"
+MODE="${2:-}"
+ARG3="${3:-}"
+
+LOG_DIR="/app/logs"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/traffic_tunnel.log"
+
+ts() { date +"%Y-%m-%dT%H:%M:%S%z"; }
+
+if [[ -z "$IFACE" || -z "$MODE" ]]; then
+  echo "$(ts) [ERR] Uso: $0 <iface> (-s | -c <script>)" | tee -a "$LOG_FILE"
+  exit 1
+fi
+
+case "$MODE" in
+  -s)
+    echo "$(ts) [INFO] Inicializando em modo servidor na interface $IFACE" | tee -a "$LOG_FILE"
+    # Coloque aqui lógica real de tunelamento/proxy, iptables, pcap, etc.
+    touch "$LOG_DIR/server_ready"
+    ;;
+  -c)
+    if [[ -z "${ARG3:-}" ]]; then
+      echo "$(ts) [ERR] Modo cliente requer nome de script (-c <script>)" | tee -a "$LOG_FILE"
+      exit 1
+    fi
+    echo "$(ts) [INFO] Inicializando em modo cliente na interface $IFACE com script $ARG3" | tee -a "$LOG_FILE"
+    if [[ -f "/app/$ARG3" ]]; then
+      echo "$(ts) [INFO] Executando /app/$ARG3" | tee -a "$LOG_FILE"
+      bash "/app/$ARG3" | tee -a "$LOG_FILE"
+    else
+      echo "$(ts) [WARN] Script /app/$ARG3 não encontrado; prosseguindo mesmo assim" | tee -a "$LOG_FILE"
+    fi
+    ;;
+  *)
+    echo "$(ts) [ERR] Modo desconhecido: $MODE" | tee -a "$LOG_FILE"
+    exit 1
+    ;;
+
+esac
+
+echo "$(ts) [OK] traffic_tunnel finalizado com sucesso" | tee -a "$LOG_FILE"
+exit 0

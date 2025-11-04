@@ -1,0 +1,40 @@
+services:
+  proxy:
+    build:
+      context: .
+      dockerfile: ./proxy/Dockerfile
+    container_name: proxy
+    privileged: true
+    networks:
+      labredes_net:
+        ipv4_address: 172.31.66.254
+    command: bash -c "./traffic_tunnel eth0 -s && tail -f /dev/null"
+    volumes:
+      - ./proxy/logs:/app/logs
+
+  client1:
+    build: ./client1
+    container_name: client1
+    privileged: true
+    networks:
+      labredes_net:
+        ipv4_address: 172.31.66.2
+    command: bash -c "./traffic_tunnel eth0 -c client1.sh && \
+                     while true; do curl -s https://www.google.com > /dev/null; sleep 5; done"
+
+  client2:
+    build: ./client2
+    container_name: client2
+    privileged: true
+    networks:
+      labredes_net:
+        ipv4_address: 172.31.66.3
+    command: bash -c "./traffic_tunnel eth0 -c client2.sh && \
+                     while true; do curl -s https://www.wikipedia.org > /dev/null; sleep 5; done"
+
+networks:
+  labredes_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.66.0/24
